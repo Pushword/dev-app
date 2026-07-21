@@ -1,0 +1,51 @@
+{
+	admin off
+	frankenphp
+}
+
+(performance) {
+	encode zstd br gzip
+
+	file_server {
+		precompressed zstd br gzip
+	}
+}
+
+(cache) {
+	# Images & fonts: 1 year
+	@static path *.ico *.jpg *.jpeg *.png *.gif *.webp *.svg *.woff *.woff2 *.ttf *.eot
+	header @static Cache-Control "max-age=31536000, public"
+
+	# JS & CSS: 1 week
+	@scripts path *.js *.css
+	header @scripts Cache-Control "max-age=604800, public"
+}
+
+(security) {
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+:0 {
+	root * public/
+
+	php_server {
+		resolve_root_symlink
+	    # Uncomment for worker mode (long-running kernel). Safe — see
+	    # docs/content/performance.md. Perf gain depends on workload: it mostly
+	    # amortizes the kernel boot, so it helps light pages most.
+        # root public/
+        # worker index.php 1
+    }
+
+	import performance
+	import cache
+	import security
+}
+
+# -- If you use static import Caddyfile generated --
+# import static/example.tld/.Caddyfile

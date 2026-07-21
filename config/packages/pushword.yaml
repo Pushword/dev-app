@@ -1,0 +1,69 @@
+conversation:
+  translation_deepl_api_key: '%env(default::DEEPL_API_KEY)%'
+  translation_google_api_key: '%env(default::GOOGLE_API_KEY)%'
+  translation_deepl_use_free_api: true
+
+pushword:
+  entity_user: App\Entity\User
+  apps:
+    - hosts:
+        - localhost.dev
+        - localhost
+      base_url: 'https://localhost.dev'
+      cache: static
+      randomTest: 123
+      generated_og_image: true
+      admin_block_editor: false
+      locales: 'en|fr'
+      email: 'contact@localhost.dev'
+      phoneNumber: '+33 1 23 45 67 89'
+      conversation_review_default_reply_author: 'Etienne (Pushword)'
+      page_update_notification_from: 'test@example.tld'
+      page_update_notification_to: 'test@example.tld'
+      repurpose_creators:
+        robin:
+          type: personal
+          name: 'Robin'
+          role: 'Founder at Pushword'
+          avatar: '3.jpg'
+    - hosts:
+        - pushword.piedweb.com
+        - 127.0.0.1:9090
+      base_url: 'https://pushword.piedweb.com'
+      flat_content_dir: '%pw.piedweb.flat_content_dir%'
+      static_dir: '%kernel.project_dir%/../../docs'
+      name: Pushword
+      favicon_path: '/assets/'
+      static_generators:
+        - Pushword\StaticGenerator\Generator\PagesGenerator
+        - Pushword\StaticGenerator\Generator\MediaGenerator
+        - Pushword\StaticGenerator\Generator\RobotsGenerator
+        - Pushword\StaticGenerator\Generator\ErrorPageGenerator
+        - Pushword\StaticGenerator\Generator\CopierGenerator
+        - Pushword\StaticGenerator\Generator\RedirectionHtmlGenerator
+        - Pushword\StaticGenerator\Generator\CNAMEGenerator
+      assets:
+        javascripts:
+          - 'assets/app.js'
+        stylesheets:
+          - 'assets/tw.css'
+      color_bg: '#fff'
+      static_assets:
+        - assets
+    - hosts:
+        - admin-block-editor.test
+      base_url: 'https://admin-block-editor.test'
+
+static_generator:
+  static_symlink: false
+
+pushword_advanced_main_image:
+  main_image_formats:
+    'adminPageMainImageFormatNone': 1
+    'adminPageMainImageFormatNormal': 0
+    'adminPageMainImageFormat13fullscreen': 2
+
+pushword_template_editor:
+  disable_creation: true
+  can_be_edited_list:
+    - '/pushword.piedweb.com/page/_footer.html.twig'
