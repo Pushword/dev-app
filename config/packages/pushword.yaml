@@ -5,11 +5,16 @@ conversation:
 
 pushword:
   entity_user: App\Entity\User
+  page_properties:
+    subtitle: { type: string, constraints: [{ Length: { max: 120 } }] }
   apps:
     - hosts:
         - localhost.dev
         - localhost
       base_url: 'https://localhost.dev'
+      page_properties:
+        level: { type: string, constraints: [{ Choice: { choices: [beginner, advanced] } }] }
+        priority: { type: int, constraints: [{ Positive: ~ }] }
       cache: static
       randomTest: 123
       generated_og_image: true
@@ -57,6 +62,8 @@ pushword:
         # what covers resolving an alias back to its main host.
         - www.admin-block-editor.test
       base_url: 'https://admin-block-editor.test'
+      page_properties:
+        author: { type: string, required: true }
 
 static_generator:
   static_symlink: false
