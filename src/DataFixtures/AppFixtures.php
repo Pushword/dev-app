@@ -143,56 +143,40 @@ class AppFixtures extends Fixture
 
         $manager->persist($quizPage);
 
-        // Variant pages demo (localhost.dev): a master stay and a partner variant
-        // that consolidates onto it (canonical → master, link rewriting, exclusions).
         if ('localhost.dev' === $this->apps->getMainHost()) {
-            $variantMaster = new Page();
-            $variantMaster->h1 = 'Mountain Lodge — 3-night stay';
-            $variantMaster->title = 'Mountain Lodge — 3-night stay | Variant pages demo';
-            $variantMaster->slug = 'demo-variant-master';
-            $variantMaster->locale = 'en';
-            $variantMaster->host = 'localhost.dev';
-            $variantMaster->createdAt = new DateTime('1 day ago');
-            $variantMaster->updatedAt = new DateTime('1 day ago');
-            $variantMaster->setTags('mountain-lodge');
-            $variantMaster->mainContent = "This is the **master** page for this stay — the one search engines index.\n\n"
-            .'Several partners resell the same stay with their own wording. See '
-            ."[Partner B's version](/demo-variant-partner): it is a **variant** of this page. "
-            .'In the HTML source that link is rewritten to point here (the master), keeping the '
-            .'variant URL on a `data-variant` hook — so crawlers and no-JS visitors consolidate onto the master.';
-
-            $variantPartner = new Page();
-            $variantPartner->h1 = 'Mountain Lodge getaway, curated by Partner B';
-            $variantPartner->title = 'Mountain Lodge getaway — Partner B | Variant pages demo';
-            $variantPartner->slug = 'demo-variant-partner';
-            $variantPartner->locale = 'en';
-            $variantPartner->host = 'localhost.dev';
-            $variantPartner->createdAt = new DateTime('1 day ago');
-            $variantPartner->updatedAt = new DateTime('1 day ago');
-            $variantPartner->setTags('mountain-lodge');
-            $variantPartner->mainContent = "Partner B's own pitch for the **same** stay: different wording, identical product.\n\n"
-            .'This page renders fully on its own URL but its canonical points to '
-            .'[the master](/demo-variant-master), it emits no hreflang, and it is excluded from the '
-            .'sitemap, the internal search and the menus. Use **Promote to master** in the admin to swap roles.';
-            $variantPartner->variantOf = $variantMaster;
-
-            $manager->persist($variantMaster);
-            $manager->persist($variantPartner);
+            $this->loadVariantDemo($manager, 'localhost.dev');
         }
 
         if (\in_array('admin-block-editor.test', $this->apps->getHosts(), true)) {
+            // The block editor site had a single page, so its root 404'd and every
+            // pages_list on its kitchen sink previewed empty — pages_list is
+            // host-scoped, and there was nothing on the host to find.
+            $blockHomepage = new Page();
+            $blockHomepage->h1 = 'Welcome to the block editor demo';
+            $blockHomepage->slug = 'homepage';
+            $blockHomepage->setMainImage($media['Demo 2']);
+            $blockHomepage->locale = 'en';
+            $blockHomepage->createdAt = new DateTime('2 days ago');
+            $blockHomepage->updatedAt = new DateTime('2 days ago');
+            $blockHomepage->mainContent = $finalContent;
+            $blockHomepage->host = 'admin-block-editor.test';
+
+            $manager->persist($blockHomepage);
+
             $ksBlockPage = new Page();
             $ksBlockPage->h1 = 'Demo Page - Kitchen Sink Block';
             $ksBlockPage->slug = 'kitchen-sink';
             $ksBlockPage->setMainImage($media['Demo 1']);
             $ksBlockPage->locale = 'en';
-            $ksBlockPage->parentPage = $homepage;
+            $ksBlockPage->parentPage = $blockHomepage;
             $ksBlockPage->createdAt = new DateTime('1 day ago');
             $ksBlockPage->updatedAt = new DateTime('1 day ago');
             $ksBlockPage->mainContent = (string) file_get_contents(__DIR__.'/KitchenSink.md');
             $ksBlockPage->host = 'admin-block-editor.test';
 
             $manager->persist($ksBlockPage);
+
+            $this->loadVariantDemo($manager, 'admin-block-editor.test');
         }
 
         $redirectionPage = new Page();
@@ -286,9 +270,58 @@ class AppFixtures extends Fixture
             $manager->flush();
         }
 
-        $this->loadHorizontalScrollDemo($manager, $homepage, $media);
+        $scrollerParents = ['localhost.dev' === $this->apps->getMainHost() ? 'localhost.dev' : '' => $homepage];
+        if (isset($blockHomepage)) {
+            $scrollerParents['admin-block-editor.test'] = $blockHomepage;
+        }
+
+        $this->loadHorizontalScrollDemo($manager, $media, $scrollerParents);
         $this->loadRepurposeDemo($manager);
         $this->loadNewsletterDemo($manager);
+    }
+
+    /**
+     * A master stay and a partner variant that consolidates onto it: canonical → master,
+     * the link to the variant rewritten to the master in the HTML source, and the variant
+     * kept out of the sitemap, the search and the menus — but not out of content lists,
+     * which is what the kitchen sink's `mountain-lodge` list shows.
+     *
+     * One pair per host serving that kitchen sink, since pages_list is host-scoped.
+     */
+    private function loadVariantDemo(ObjectManager $manager, string $host): void
+    {
+        $master = new Page();
+        $master->h1 = 'Mountain Lodge — 3-night stay';
+        $master->title = 'Mountain Lodge — 3-night stay | Variant pages demo';
+        $master->slug = 'demo-variant-master';
+        $master->locale = 'en';
+        $master->host = $host;
+        $master->createdAt = new DateTime('1 day ago');
+        $master->updatedAt = new DateTime('1 day ago');
+        $master->setTags('mountain-lodge');
+        $master->mainContent = "This is the **master** page for this stay — the one search engines index.\n\n"
+        .'Several partners resell the same stay with their own wording. See '
+        ."[Partner B's version](/demo-variant-partner): it is a **variant** of this page. "
+        .'In the HTML source that link is rewritten to point here (the master), keeping the '
+        .'variant URL on a `data-variant` hook — so crawlers and no-JS visitors consolidate onto the master.';
+
+        $partner = new Page();
+        $partner->h1 = 'Mountain Lodge getaway, curated by Partner B';
+        $partner->title = 'Mountain Lodge getaway — Partner B | Variant pages demo';
+        $partner->slug = 'demo-variant-partner';
+        $partner->locale = 'en';
+        $partner->host = $host;
+        $partner->createdAt = new DateTime('1 day ago');
+        $partner->updatedAt = new DateTime('1 day ago');
+        $partner->setTags('mountain-lodge');
+        $partner->mainContent = "Partner B's own pitch for the **same** stay: different wording, identical product.\n\n"
+        .'This page renders fully on its own URL but its canonical points to '
+        .'[the master](/demo-variant-master), it emits no hreflang, and it is excluded from the '
+        .'sitemap, the internal search and the menus. Use **Promote to master** in the admin to swap roles.';
+        $partner->variantOf = $master;
+
+        $manager->persist($master);
+        $manager->persist($partner);
     }
 
     /**
@@ -302,9 +335,27 @@ class AppFixtures extends Fixture
      * fixtures to combine `setMainImage()` with tags, so tagging them would leak into
      * that test.
      *
+     * One set per host rendering the kitchen sink: the block editor site serves the
+     * same KitchenSink.md, and pages_list is host-scoped — so without its own copies
+     * the scroller previews empty in the editor, where the block is what we demo.
+     *
+     * @param array<string, Media> $media
+     * @param array<string, Page>  $parentByHost one demo set per host, under that host's
+     *                                           own homepage ('' = the app's default host)
+     */
+    private function loadHorizontalScrollDemo(ObjectManager $manager, array $media, array $parentByHost): void
+    {
+        foreach ($parentByHost as $host => $parent) {
+            $this->loadHorizontalScrollDemoPages($manager, $parent, $media, $host);
+        }
+
+        $manager->flush();
+    }
+
+    /**
      * @param array<string, Media> $media
      */
-    private function loadHorizontalScrollDemo(ObjectManager $manager, Page $parent, array $media): void
+    private function loadHorizontalScrollDemoPages(ObjectManager $manager, Page $parent, array $media, string $host): void
     {
         $images = ['Demo 1', 'Demo 2', 'Demo 3'];
 
@@ -332,14 +383,12 @@ class AppFixtures extends Fixture
             $page->mainContent = $description."\n\nA demo page, here only to fill the horizontal scroller "
                 .'rendered on the [kitchen sink](/kitchen-sink).';
 
-            if ('localhost.dev' === $this->apps->getMainHost()) {
-                $page->host = 'localhost.dev';
+            if ('' !== $host) {
+                $page->host = $host;
             }
 
             $manager->persist($page);
         }
-
-        $manager->flush();
     }
 
     /**
